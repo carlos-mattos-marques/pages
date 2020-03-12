@@ -1,11 +1,338 @@
-<link rel="stylesheet" href="https://stackedit.io/style.css" />
-<h4 id="bug-when-creating-a-new-customer.">Bug when creating a new customer.</h4>
-<h2 id="section"><img src="excpt.png" alt="ex"></h2>
-<p><em>The source of this bug was the following:</em></p>
-<p>After creating a new customer the user is redirected to the <code>department</code> edit view.</p>
-<p><img src="302.png" alt="302"></p>
-<p>But for the form rendered by the <code>departments#edit</code> action to be properly rendered a customer is needed and suck customer is sought after using the controller helper method <code>current_customer</code></p>
-<p><img src="ecc.png" alt="ecc"></p>
-<p>But such method is not functional on this use case, since the newly created customer was not “selected” through his id on the session storage and the <code>current_user</code> it’s not related to it.</p>
-<p><img src="cc.png" alt="cc"></p>
-<div><iframe src="https://streamable.com/s/pg6ia/nvobbs" width="800" height="430" frameborder="0" allowfullscreen></iframe></div>
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>staff_query.md</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css" />
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__left">
+    <div class="stackedit__toc">
+
+<ul>
+<li>
+<ul>
+<li>
+<ul>
+<li></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+    </div>
+  </div>
+  <div class="stackedit__right">
+    <div class="stackedit__html">
+      <h4 id="staff-members-table-query-is-not">Staff Members table query is <em><strong>NOT</strong></em></h4>
+<pre class=" language-sql"><code class="prism  language-sql"><span class="token keyword">SELECT</span> <span class="token string">"staffs"</span><span class="token punctuation">.</span><span class="token operator">*</span> <span class="token keyword">FROM</span> <span class="token string">"staffs"</span> <span class="token keyword">WHERE</span> <span class="token string">"staffs"</span><span class="token punctuation">.</span><span class="token string">"district_id"</span> <span class="token operator">=</span> <span class="token number">62</span>
+<span class="token keyword">ORDER</span> <span class="token keyword">BY</span> <span class="token string">"staffs"</span><span class="token punctuation">.</span><span class="token string">"created_at"</span> <span class="token keyword">DESC</span> <span class="token keyword">LIMIT</span> <span class="token number">100</span> <span class="token keyword">OFFSET</span> <span class="token number">0</span>
+</code></pre>
+<h4 id="staff-members-table-query-is">Staff Members table query <em><strong>IS</strong></em></h4>
+<pre class=" language-sql"><code class="prism  language-sql"><span class="token keyword">WITH</span> staff_set <span class="token keyword">as</span> <span class="token punctuation">(</span>
+  <span class="token keyword">SELECT</span>
+    s<span class="token punctuation">.</span>district_id<span class="token punctuation">,</span>
+    sa<span class="token punctuation">.</span>school_year<span class="token punctuation">,</span>
+    sa<span class="token punctuation">.</span>exclude<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>id staff_id<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>staff_number<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>first_name<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>last_name<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>email<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>position<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>department<span class="token punctuation">,</span>
+    <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> u<span class="token punctuation">.</span>id <span class="token operator">is</span> <span class="token operator">not</span> <span class="token boolean">null</span> <span class="token keyword">THEN</span> <span class="token string">'Y'</span> <span class="token keyword">ELSE</span> <span class="token string">'N'</span> <span class="token keyword">END</span> <span class="token keyword">as</span> has_portal_account<span class="token punctuation">,</span>
+    string_agg<span class="token punctuation">(</span>sch<span class="token punctuation">.</span>name<span class="token punctuation">,</span> <span class="token string">'::::'</span><span class="token punctuation">)</span> schools
+  <span class="token keyword">FROM</span>
+    staffs s
+    <span class="token keyword">JOIN</span> staff_assignments sa <span class="token keyword">on</span> sa<span class="token punctuation">.</span>staff_id <span class="token operator">=</span> s<span class="token punctuation">.</span>id
+    <span class="token keyword">JOIN</span> schools sch <span class="token keyword">on</span> sch<span class="token punctuation">.</span>id <span class="token operator">=</span> sa<span class="token punctuation">.</span>school_id
+    <span class="token keyword">LEFT</span> <span class="token keyword">JOIN</span> users u <span class="token keyword">on</span> u<span class="token punctuation">.</span>email <span class="token operator">=</span> s<span class="token punctuation">.</span>email
+  <span class="token keyword">WHERE</span>
+    s<span class="token punctuation">.</span>district_id <span class="token operator">=</span> <span class="token number">62</span>
+    <span class="token operator">AND</span> sa<span class="token punctuation">.</span>school_year <span class="token operator">=</span> <span class="token number">2020</span>
+  <span class="token keyword">GROUP</span> <span class="token keyword">BY</span>
+    s<span class="token punctuation">.</span>id<span class="token punctuation">,</span>
+    sa<span class="token punctuation">.</span>school_year<span class="token punctuation">,</span>
+    sa<span class="token punctuation">.</span>exclude<span class="token punctuation">,</span>
+    u<span class="token punctuation">.</span>id
+<span class="token punctuation">)</span><span class="token punctuation">,</span>
+willingness_to_assist_query <span class="token keyword">as</span> <span class="token punctuation">(</span>
+  <span class="token keyword">SELECT</span>
+    sv<span class="token punctuation">.</span>staff_id<span class="token punctuation">,</span>
+    sv<span class="token punctuation">.</span>school_year<span class="token punctuation">,</span>
+    string_agg<span class="token punctuation">(</span>
+      <span class="token keyword">DISTINCT</span> TRIM<span class="token punctuation">(</span>
+        replace<span class="token punctuation">(</span>question_text<span class="token punctuation">,</span> <span class="token string">'${e://Field/ULC}'</span><span class="token punctuation">,</span> choice_text<span class="token punctuation">)</span>
+      <span class="token punctuation">)</span><span class="token punctuation">,</span>
+      <span class="token string">'::::'</span>
+    <span class="token punctuation">)</span> <span class="token keyword">AS</span> willingness_to_assist
+  <span class="token keyword">FROM</span>
+    staff_survey_responses_view sv
+    <span class="token keyword">JOIN</span> staffs s <span class="token keyword">ON</span> sv<span class="token punctuation">.</span>staff_id <span class="token operator">=</span> s<span class="token punctuation">.</span>id
+    <span class="token keyword">JOIN</span> districts <span class="token number">d</span> <span class="token keyword">ON</span> s<span class="token punctuation">.</span>district_id <span class="token operator">=</span> <span class="token number">d</span><span class="token punctuation">.</span>id
+  <span class="token keyword">WHERE</span>
+    <span class="token punctuation">(</span>question_number ILIKE <span class="token string">'Q325_%'</span><span class="token punctuation">)</span>
+    <span class="token operator">AND</span> <span class="token number">d</span><span class="token punctuation">.</span>id <span class="token operator">=</span> <span class="token number">62</span>
+    <span class="token operator">AND</span> sv<span class="token punctuation">.</span>school_year <span class="token operator">=</span> <span class="token number">2020</span>
+  <span class="token keyword">GROUP</span> <span class="token keyword">BY</span>
+    sv<span class="token punctuation">.</span>staff_id<span class="token punctuation">,</span>
+    sv<span class="token punctuation">.</span>school_year
+<span class="token punctuation">)</span><span class="token punctuation">,</span>
+teaching_interests_query <span class="token keyword">as</span> <span class="token punctuation">(</span>
+  <span class="token keyword">SELECT</span>
+    sv<span class="token punctuation">.</span>staff_id<span class="token punctuation">,</span>
+    sv<span class="token punctuation">.</span>school_year<span class="token punctuation">,</span>
+    string_agg<span class="token punctuation">(</span>
+      <span class="token keyword">DISTINCT</span> concat<span class="token punctuation">(</span>question_text<span class="token punctuation">,</span> <span class="token string">': '</span><span class="token punctuation">,</span> choice_text<span class="token punctuation">)</span><span class="token punctuation">,</span>
+      <span class="token string">'::::'</span>
+    <span class="token punctuation">)</span> <span class="token keyword">AS</span> teaching_interests
+  <span class="token keyword">FROM</span>
+    staff_survey_responses_view sv
+    <span class="token keyword">JOIN</span> staffs s <span class="token keyword">ON</span> sv<span class="token punctuation">.</span>staff_id <span class="token operator">=</span> s<span class="token punctuation">.</span>id
+    <span class="token keyword">JOIN</span> districts <span class="token number">d</span> <span class="token keyword">ON</span> s<span class="token punctuation">.</span>district_id <span class="token operator">=</span> <span class="token number">d</span><span class="token punctuation">.</span>id
+  <span class="token keyword">WHERE</span>
+    <span class="token punctuation">(</span>question_number ILIKE <span class="token string">'Q101%'</span><span class="token punctuation">)</span>
+    <span class="token operator">AND</span> <span class="token number">d</span><span class="token punctuation">.</span>id <span class="token operator">=</span> <span class="token number">62</span>
+    <span class="token operator">AND</span> sv<span class="token punctuation">.</span>school_year <span class="token operator">=</span> <span class="token number">2020</span>
+  <span class="token keyword">GROUP</span> <span class="token keyword">BY</span>
+    sv<span class="token punctuation">.</span>staff_id<span class="token punctuation">,</span>
+    sv<span class="token punctuation">.</span>school_year
+<span class="token punctuation">)</span><span class="token punctuation">,</span>
+course_interests_query <span class="token keyword">as</span> <span class="token punctuation">(</span>
+  <span class="token keyword">SELECT</span>
+    sv<span class="token punctuation">.</span>staff_id<span class="token punctuation">,</span>
+    sv<span class="token punctuation">.</span>school_year<span class="token punctuation">,</span>
+    string_agg<span class="token punctuation">(</span>
+      <span class="token keyword">DISTINCT</span> <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> question_number <span class="token operator">=</span> <span class="token string">'Q308'</span> <span class="token keyword">THEN</span> concat<span class="token punctuation">(</span><span class="token string">'AP: '</span><span class="token punctuation">,</span> choice_text<span class="token punctuation">)</span> <span class="token keyword">ELSE</span> concat<span class="token punctuation">(</span><span class="token string">'IB: '</span><span class="token punctuation">,</span> choice_text<span class="token punctuation">)</span> <span class="token keyword">END</span><span class="token punctuation">,</span>
+      <span class="token string">'::::'</span>
+    <span class="token punctuation">)</span> <span class="token keyword">AS</span> course_interests
+  <span class="token keyword">FROM</span>
+    staff_survey_responses_view sv
+    <span class="token keyword">JOIN</span> staffs s <span class="token keyword">ON</span> sv<span class="token punctuation">.</span>staff_id <span class="token operator">=</span> s<span class="token punctuation">.</span>id
+    <span class="token keyword">JOIN</span> districts <span class="token number">d</span> <span class="token keyword">ON</span> s<span class="token punctuation">.</span>district_id <span class="token operator">=</span> <span class="token number">d</span><span class="token punctuation">.</span>id
+  <span class="token keyword">WHERE</span>
+    <span class="token punctuation">(</span>
+      question_number <span class="token operator">=</span> <span class="token string">'Q308'</span>
+      <span class="token operator">OR</span> question_number <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token string">'Q308'</span><span class="token punctuation">,</span> <span class="token string">'Q309'</span><span class="token punctuation">)</span>
+    <span class="token punctuation">)</span>
+    <span class="token operator">AND</span> <span class="token number">d</span><span class="token punctuation">.</span>id <span class="token operator">=</span> <span class="token number">62</span>
+    <span class="token operator">AND</span> sv<span class="token punctuation">.</span>school_year <span class="token operator">=</span> <span class="token number">2020</span>
+  <span class="token keyword">GROUP</span> <span class="token keyword">BY</span>
+    sv<span class="token punctuation">.</span>staff_id<span class="token punctuation">,</span>
+    sv<span class="token punctuation">.</span>school_year
+<span class="token punctuation">)</span><span class="token punctuation">,</span>
+student_counts <span class="token keyword">AS</span> <span class="token punctuation">(</span>
+  <span class="token keyword">SELECT</span>
+    s<span class="token punctuation">.</span>staff_id staff_id<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span><span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'trusted'</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span><span class="token punctuation">)</span> trusted_total<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'trusted'</span>
+      <span class="token operator">AND</span> grade <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">11</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> trusted_total_10_11<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'trusted'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">!=</span> <span class="token number">1</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> trusted_ur<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'trusted'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">!=</span> <span class="token number">1</span>
+      <span class="token operator">AND</span> grade <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">11</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> trusted_ur_10_11<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'trusted'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> trusted_wa<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'trusted'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">)</span>
+      <span class="token operator">AND</span> grade <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">11</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> trusted_wa_10_11<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'trusted'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">,</span> <span class="token number">4</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> trusted_hl<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'trusted'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">,</span> <span class="token number">4</span><span class="token punctuation">)</span>
+      <span class="token operator">AND</span> grade <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">11</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> trusted_hl_10_11<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'trusted'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">,</span> <span class="token number">6</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> trusted_aa<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'trusted'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">,</span> <span class="token number">6</span><span class="token punctuation">)</span>
+      <span class="token operator">AND</span> grade <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">11</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> trusted_aa_10_11<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'trusted'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">7</span><span class="token punctuation">,</span> <span class="token number">8</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> trusted_other<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'trusted'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">7</span><span class="token punctuation">,</span> <span class="token number">8</span><span class="token punctuation">)</span>
+      <span class="token operator">AND</span> grade <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">11</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> trusted_other_10_11<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'influential'</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> influence_total<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'influential'</span>
+      <span class="token operator">AND</span> grade <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">11</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> influence_total_10_11<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'influential'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">!=</span> <span class="token number">1</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> influence_ur<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'influential'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">!=</span> <span class="token number">1</span>
+      <span class="token operator">AND</span> grade <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">11</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> influence_ur_10_11<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'influential'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> influence_wa<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'influential'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">)</span>
+      <span class="token operator">AND</span> grade <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">11</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> influence_wa_10_11<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'influential'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">,</span> <span class="token number">4</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> influence_hl<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'influential'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">,</span> <span class="token number">4</span><span class="token punctuation">)</span>
+      <span class="token operator">AND</span> grade <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">11</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> influence_hl_10_11<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'influential'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">,</span> <span class="token number">6</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> influence_aa<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'influential'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">,</span> <span class="token number">6</span><span class="token punctuation">)</span>
+      <span class="token operator">AND</span> grade <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">11</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> influence_aa_10_11<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'influential'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">7</span><span class="token punctuation">,</span> <span class="token number">8</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> influence_other<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span>
+      <span class="token keyword">CASE</span> <span class="token keyword">WHEN</span> relationship <span class="token operator">=</span> <span class="token string">'influential'</span>
+      <span class="token operator">AND</span> eos_segment<span class="token punctuation">(</span>race_segment<span class="token punctuation">,</span> fr_lunch<span class="token punctuation">)</span> <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">7</span><span class="token punctuation">,</span> <span class="token number">8</span><span class="token punctuation">)</span>
+      <span class="token operator">AND</span> grade <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">11</span><span class="token punctuation">)</span> <span class="token keyword">THEN</span> <span class="token number">1</span> <span class="token keyword">END</span>
+    <span class="token punctuation">)</span> influence_other_10_11<span class="token punctuation">,</span>
+    <span class="token function">COUNT</span><span class="token punctuation">(</span><span class="token operator">*</span><span class="token punctuation">)</span> total
+  <span class="token keyword">FROM</span>
+    staff_set s
+    <span class="token keyword">JOIN</span> student_staff_relationships ssr <span class="token keyword">ON</span> ssr<span class="token punctuation">.</span>staff_id <span class="token operator">=</span> s<span class="token punctuation">.</span>staff_id
+    <span class="token operator">AND</span> ssr<span class="token punctuation">.</span>school_year <span class="token operator">=</span> s<span class="token punctuation">.</span>school_year
+    <span class="token operator">AND</span> ssr<span class="token punctuation">.</span>relationship <span class="token operator">IN</span> <span class="token punctuation">(</span><span class="token string">'trusted'</span><span class="token punctuation">,</span> <span class="token string">'influential'</span><span class="token punctuation">)</span>
+    <span class="token keyword">JOIN</span> profiles p <span class="token keyword">ON</span> p<span class="token punctuation">.</span>student_id <span class="token operator">=</span> ssr<span class="token punctuation">.</span>student_id
+    <span class="token operator">AND</span> p<span class="token punctuation">.</span>end_date <span class="token operator">is</span> <span class="token boolean">null</span>
+    <span class="token operator">AND</span> p<span class="token punctuation">.</span>school_year <span class="token operator">=</span> ssr<span class="token punctuation">.</span>school_year
+  <span class="token keyword">GROUP</span> <span class="token keyword">BY</span>
+    s<span class="token punctuation">.</span>staff_id
+<span class="token punctuation">)</span>
+<span class="token keyword">select</span>
+  s<span class="token punctuation">.</span>staff_id<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>staff_number<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>first_name<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>last_name<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>exclude<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>email<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>position<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>department<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>has_portal_account<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>schools<span class="token punctuation">,</span>
+  wta<span class="token punctuation">.</span>willingness_to_assist<span class="token punctuation">,</span>
+  ti<span class="token punctuation">.</span>teaching_interests<span class="token punctuation">,</span>
+  tci<span class="token punctuation">.</span>course_interests<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>trusted_total<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>trusted_total_10_11<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>trusted_ur<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>trusted_ur_10_11<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>trusted_wa<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>trusted_wa_10_11<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>trusted_hl<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>trusted_hl_10_11<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>trusted_aa<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>trusted_aa_10_11<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>trusted_other<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>trusted_other_10_11<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>influence_total<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>influence_total_10_11<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>influence_ur<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>influence_ur_10_11<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>influence_wa<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>influence_wa_10_11<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>influence_hl<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>influence_hl_10_11<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>influence_aa<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>influence_aa_10_11<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>influence_other<span class="token punctuation">,</span>
+  sc<span class="token punctuation">.</span>influence_other_10_11
+<span class="token keyword">from</span>
+  staff_set s
+  <span class="token keyword">left</span> <span class="token keyword">join</span> willingness_to_assist_query wta <span class="token keyword">on</span> wta<span class="token punctuation">.</span>staff_id <span class="token operator">=</span> s<span class="token punctuation">.</span>staff_id
+  <span class="token keyword">left</span> <span class="token keyword">join</span> teaching_interests_query ti <span class="token keyword">on</span> ti<span class="token punctuation">.</span>staff_id <span class="token operator">=</span> s<span class="token punctuation">.</span>staff_id
+  <span class="token keyword">left</span> <span class="token keyword">join</span> course_interests_query tci <span class="token keyword">on</span> tci<span class="token punctuation">.</span>staff_id <span class="token operator">=</span> s<span class="token punctuation">.</span>staff_id
+  <span class="token keyword">left</span> <span class="token keyword">join</span> student_counts sc <span class="token keyword">on</span> sc<span class="token punctuation">.</span>staff_id <span class="token operator">=</span> s<span class="token punctuation">.</span>staff_id
+</code></pre>
+<h4 id="trimming-some-of-the-fat.">Trimming some of the fat.</h4>
+<pre class=" language-sql"><code class="prism  language-sql"><span class="token keyword">WITH</span> staff_set <span class="token keyword">as</span> <span class="token punctuation">(</span>
+  <span class="token keyword">SELECT</span>
+    s<span class="token punctuation">.</span>district_id<span class="token punctuation">,</span>
+    sa<span class="token punctuation">.</span>school_year<span class="token punctuation">,</span>
+    sa<span class="token punctuation">.</span>exclude<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>id staff_id<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>staff_number<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>first_name<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>last_name<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>email<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>position<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>department<span class="token punctuation">,</span>
+    s<span class="token punctuation">.</span>created_at<span class="token punctuation">,</span>
+    string_agg<span class="token punctuation">(</span>sch<span class="token punctuation">.</span>name<span class="token punctuation">,</span> <span class="token string">'::::'</span><span class="token punctuation">)</span> schools
+  <span class="token keyword">FROM</span>
+    staffs s
+    <span class="token keyword">JOIN</span> staff_assignments sa <span class="token keyword">on</span> sa<span class="token punctuation">.</span>staff_id <span class="token operator">=</span> s<span class="token punctuation">.</span>id
+    <span class="token keyword">JOIN</span> schools sch <span class="token keyword">on</span> sch<span class="token punctuation">.</span>id <span class="token operator">=</span> sa<span class="token punctuation">.</span>school_id
+    <span class="token keyword">LEFT</span> <span class="token keyword">JOIN</span> users u <span class="token keyword">on</span> u<span class="token punctuation">.</span>email <span class="token operator">=</span> s<span class="token punctuation">.</span>email
+  <span class="token keyword">WHERE</span>
+    s<span class="token punctuation">.</span>district_id <span class="token operator">=</span> <span class="token number">62</span>
+    <span class="token operator">AND</span> sa<span class="token punctuation">.</span>school_year <span class="token operator">=</span> <span class="token number">2020</span>
+  <span class="token keyword">GROUP</span> <span class="token keyword">BY</span>
+    s<span class="token punctuation">.</span>id<span class="token punctuation">,</span>
+    sa<span class="token punctuation">.</span>school_year<span class="token punctuation">,</span>
+    sa<span class="token punctuation">.</span>exclude<span class="token punctuation">,</span>
+    u<span class="token punctuation">.</span>id
+<span class="token punctuation">)</span>
+<span class="token keyword">SELECT</span>
+  s<span class="token punctuation">.</span>staff_id<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>first_name<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>last_name<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>email<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>position<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>department<span class="token punctuation">,</span>
+  s<span class="token punctuation">.</span>created_at
+<span class="token keyword">FROM</span>
+  staff_set s
+<span class="token keyword">ORDER</span> <span class="token keyword">BY</span>
+  s<span class="token punctuation">.</span>created_at <span class="token keyword">DESC</span><span class="token punctuation">;</span>
+</code></pre>
+
+    </div>
+  </div>
+</body>
+
+</html>
