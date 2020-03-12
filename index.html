@@ -1,0 +1,11 @@
+<link rel="stylesheet" href="https://stackedit.io/style.css" />
+<h4 id="bug-when-creating-a-new-customer.">Bug when creating a new customer.</h4>
+<h2 id="section"><img src="excpt.png" alt="ex"></h2>
+<p><em>The source of this bug was the following:</em></p>
+<p>After creating a new customer the user is redirected to the <code>department</code> edit view.</p>
+<p><img src="302.png" alt="302"></p>
+<p>But for the form rendered by the <code>departments#edit</code> action to be properly rendered a customer is needed and suck customer is sought after using the controller helper method <code>current_customer</code></p>
+<p><img src="ecc.png" alt="ecc"></p>
+<p>But such method is not functional on this use case, since the newly created customer was not “selected” through his id on the session storage and the <code>current_user</code> it’s not related to it.</p>
+<p><img src="cc.png" alt="cc"></p>
+<div><iframe src="https://streamable.com/s/pg6ia/nvobbs" width="800" height="430" frameborder="0" allowfullscreen></iframe></div>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: "en-US" }}">
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,maximum-scale=2">
+    <link rel="stylesheet" type="text/css" media="screen" href="/assets/css/style.css">
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <h1 id="project_title">Bug Replica</h1>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h4 id="bug-when-creating-a-new-customer.">Bug when creating a new customer.</h4>
+        <h2 id="section"><img src="excpt.png" alt="ex"></h2>
+        <p><em>The source of this bug was the following:</em></p>
+        <p>After creating a new customer the user is redirected to the <code>department</code> edit view.</p>
+        <p><img src="302.png" alt="302"></p>
+        <p>But for the form rendered by the <code>departments#edit</code> action to be properly rendered a customer is needed and suck customer is sought after using the controller helper method <code>current_customer</code></p>
+        <p><img src="ecc.png" alt="ecc"></p>
+        <p>But such method is not functional on this use case, since the newly created customer was not “selected” through his id on the session storage and the <code>current_user</code> it’s not related to it.</p>
+        <p><img src="cc.png" alt="cc"></p>
+        <div><iframe src="https://streamable.com/s/pg6ia/nvobbs" width="800" height="430" frameborder="0" allowfullscreen></iframe></div>
+      </section>
+    </div>
+  </body>
+</html>
